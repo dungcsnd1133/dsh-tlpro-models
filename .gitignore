@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# No build output is committed: this package is configuration only. DSH reads
+# cordis.patch.yml directly, so a clone is complete as-is.
+
+# Editor and OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local scratch
+*.log
+*.tmp
+.push.sh

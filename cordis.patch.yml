@@ -1,0 +1,102 @@
+# dsh-tlpro-models — declares the TLPro gateway and its model catalog.
+#
+# This is a bundle patch layer, the composition mechanism DSH documents for
+# profiles: the loader applies it in `dsh.profile.bundles` order, then the
+# profile's own cordis.patch.yml, with the last write winning per row id.
+#
+# It declares nothing but configuration, so it never edits the DSH checkout and
+# never shadows a plugin implementation. Removing the package from the profile
+# removes every route it adds.
+#
+# A patch REPLACES the targeted row's whole `config`, so this entry must restate
+# everything the `llm-pi-ai` row needs. Keep it that way: a partial config here
+# would silently drop the fields it omits.
+#
+# ── Where these numbers come from ────────────────────────────────────────────
+# 9router 0.5.112 ships the authoritative capability table in
+# app/.next-cli-build/server/chunks/24.js. Its `thinkingFormat` field decides
+# which wire parameter the router sends upstream, and that is what the levels
+# below must match:
+#
+#   glm-5.3        thinkingFormat "openai" -> `reasoning_effort` sent verbatim
+#   glm-5.3-flash  thinkingFormat "openai" -> `reasoning_effort` sent verbatim
+#   deepseek-v4.1  thinkingFormat "deepseek" -> router REMAPS: xhigh|max -> max,
+#                  low|minimal -> low (only if the provider lists "low"),
+#                  everything else -> high. An unsupported "max" degrades to high.
+#
+# The zai branch (which collapses levels to low/high/max) does NOT apply to
+# these models: that only runs for thinkingFormat "zai". Verified in
+# chunks/2380.js `case"zai"` vs `case"openai"`.
+#
+# `maxOutput` in that table is authoritative for the output ceiling, and the
+# router clamps to it (`Math.min(requested, caps.maxOutput)`), so a value above
+# it is silently reduced — it is not evidence the gateway accepts more.
+# Measured rejection boundary: glm-5.3 accepts 131072 and rejects 131073.
+#
+# `/v1/models` on this gateway returns ids only, no context/output metadata, so
+# the plugin cannot discover these numbers at runtime; they are declared here.
+
+- id: llm-pi-ai
+  config:
+    providers:
+      tlpro:
+        displayName: TLPro
+        apiKeyEnv: TLPRO_API_KEY
+        api: openai-completions
+        baseURL: https://hoantienmuasam.net/llmtlpro/v1
+        models:
+          # thinkingFormat "deepseek": the router owns the level mapping, so the
+          # declared set is exactly what survives that remap. low and max are the
+          # only levels deepseek-v4.1-flash distinguishes; medium has nowhere to
+          # go (it lands on high).
+          - id: deepseek-v4.1-flash
+            name: DeepSeek V4.1 Flash
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+            compat:
+              supportsReasoningEffort: true
+              thinkingFormat: deepseek
+            contextWindow: 1000000
+            maxTokens: 393216
+            input:
+              - text
+              - image
+          # thinkingFormat "openai": `reasoning_effort` is forwarded verbatim, so
+          # every level the model accepts is usable. GLM exposes low/high/max.
+          # Its caps table marks thinkingEffortSupported false for the flash
+          # variant, meaning level changes may not alter behaviour — the levels
+          # are still accepted and forwarded, so they are declared, but do not
+          # expect the reasoning-token count to move with them.
+          - id: glm-5.3-flash
+            name: GLM 5.3 Flash
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+            compat:
+              supportsReasoningEffort: true
+              thinkingFormat: openai
+            contextWindow: 1000000
+            maxTokens: 131072
+            input:
+              - text
+              - image
+          # thinkingFormat "openai"; caps table maxOutput 131072 (hard: 131073 is
+          # rejected upstream). thinkingCanDisable is false for this model, so no
+          # "off" level: reasoning cannot be turned off.
+          - id: glm-5.3
+            name: GLM 5.3
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+            compat:
+              supportsReasoningEffort: true
+              thinkingFormat: openai
+            contextWindow: 1000000
+            maxTokens: 131072
+            input:
+              - text
+              - image
