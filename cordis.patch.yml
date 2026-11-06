@@ -39,6 +39,69 @@
 - id: llm-pi-ai
   config:
     providers:
+
+      # ── GLM served by the ZCode CLI ─────────────────────────────────────────
+      # A GLM Coding Plan bought for ZCode is account-bound and exposes no usable
+      # API key, so it reaches DSH through a local OpenAI-compatible bridge that
+      # shells out to `zcode -p`. Start it with `glm-bridge start`; the route
+      # answers 502 until then. See /data/dsh-plugins/dsh-glm-zcode.
+      #
+      # The bridge ignores the key, but the field is required, so it names a var
+      # that is always set rather than one an operator must remember to export.
+      # ── Z.ai (GLM Coding Plan, API key) ────────────────────────────────────
+      # Khác với route `glm-zcode` từng thử: đây là API key thật, gọi thẳng
+      # endpoint OpenAI-compatible của z.ai — không mượn CLI, nên không có chi phí
+      # ~17.5k token mỗi lượt và không phụ thuộc phiên OAuth hết hạn mỗi giờ.
+      #
+      # Chỉ khai báo 2 model ĐÃ KIỂM CHỨNG gọi được bằng key này. Hai biến thể
+      # flashx trả lỗi 1311/1113 (gói không bao gồm) nên cố tình không có mặt:
+      # hiện model không gọi được trong picker còn tệ hơn không hiện.
+      zai:
+        displayName: Z.ai (GLM)
+        apiKeyEnv: ZAI_API_KEY
+        api: openai-completions
+        baseURL: https://api.z.ai/api/coding/paas/v4
+        models:
+          # contextWindow 1M, không phải 200K: tài liệu z.ai ghi GLM-5.3 có
+          # "stable 1M context". Con số này KHÔNG được đoán — nó quyết định ngân
+          # sách compaction: threshold = (contextWindow - maxTokens) - headroom
+          # (65536 mặc định), và retain = ngân sách đó × 0.16. Với 200K thì
+          # retain (11028) vượt threshold (3392) và MỌI lượt đổi sang model này
+          # chết với "context compaction failed". Với 1M: retain 139028 <
+          # threshold 803392, đủ dư.
+          #
+          # thinkingFormat "openai": `reasoning_effort` forward nguyên văn, đã
+          # kiểm chứng endpoint chấp nhận. GLM-5.3 mặc định suy luận rất sâu —
+          # có lượt dùng hết token vào reasoning_content và để content rỗng — nên
+          # maxTokens phải rộng rãi, và mức suy luận nên đặt được.
+          - id: glm-5.3
+            name: GLM-5.3
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              max: high
+            compat:
+              supportsReasoningEffort: true
+              thinkingFormat: openai
+            contextWindow: 1000000
+            maxTokens: 131072
+            input:
+              - text
+          - id: glm-5.3-flash
+            name: GLM-5.3 Flash
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              max: high
+            compat:
+              supportsReasoningEffort: true
+              thinkingFormat: openai
+            contextWindow: 1000000
+            maxTokens: 131072
+            input:
+              - text
       tlpro:
         displayName: TLPro
         apiKeyEnv: TLPRO_API_KEY
@@ -100,3 +163,4 @@
             input:
               - text
               - image
+
