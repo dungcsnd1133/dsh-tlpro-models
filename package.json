@@ -1,6 +1,6 @@
 {
   "name": "dsh-tlpro-models",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "TLPro gateway routes and model catalog for DSH, as a bundle patch layer. Ships no code and never edits the DSH checkout.",
   "type": "module",
