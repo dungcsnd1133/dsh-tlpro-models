@@ -10,11 +10,18 @@
     "url": "git+https://github.com/dungcsnd1133/dsh-tlpro-models.git"
   },
   "files": [
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "lib"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
+  },
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
   }
 }

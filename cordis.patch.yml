@@ -36,6 +36,14 @@
 # `/v1/models` on this gateway returns ids only, no context/output metadata, so
 # the plugin cannot discover these numbers at runtime; they are declared here.
 
+# Row entry của chính bundle này. Một bundle patch CHỈ override row đã tồn tại —
+# nó không tự mount plugin. Không có row insert này, profile không nạp được
+# lib/index.js và plugin manager sẽ báo "verification failed" / "not active"
+# dù phần patch vẫn được áp dụng (đó chính là trạng thái sai từng xảy ra).
+- insert:
+    - id: tlpro-models
+      name: dsh-tlpro-models
+
 - id: llm-pi-ai
   config:
     providers:
